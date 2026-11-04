@@ -77,6 +77,25 @@
             cursor: pointer;
             font-weight: bold;
         }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .btn-sort {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .btn-sort:hover {
+            background: #138496;
+        }
         ul {
             list-style: none;
             padding: 0;
@@ -242,7 +261,10 @@
 
     <!-- Pagina 1: Gestione Allievi -->
     <div id="tab1" class="tab-content">
-        <h2>Gestione Allievi</h2>
+        <div class="section-header">
+            <h2>Gestione Allievi</h2>
+            <button class="btn-sort" onclick="sortStudentsAlphabetically()">AZ ↕️ Ordina Alfabetico</button>
+        </div>
         <div class="form-group">
             <input type="text" id="studentName" placeholder="Nome cognome allievo" onkeyup="handleKeyPress(event, addStudent)">
             <button class="btn-add" onclick="addStudent()">Aggiungi Allievo</button>
@@ -300,12 +322,10 @@
         }
     }
 
-    // Salvataggio ibrido (Firebase + LocalStorage di riserva)
     async function saveData() {
         students = sanitizeArray(students);
         lessons = sanitizeArray(lessons);
 
-        // Salva sempre in locale come sicurezza immediata
         localStorage.setItem('app_students', JSON.stringify(students));
         localStorage.setItem('app_lessons', JSON.stringify(lessons));
         localStorage.setItem('app_progress', JSON.stringify(progress));
@@ -335,7 +355,6 @@
                 progress = data.progress || {};
                 updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
             } else {
-                // Se Firebase è vuoto, prova a caricare dal browser
                 loadFromLocalStorage();
                 await saveData();
             }
@@ -344,6 +363,9 @@
             loadFromLocalStorage();
             updateSyncStatus("Stato: Modalità Offline 📂", true);
         }
+
+        // Ordina alfabeticamente all'avvio per pulizia
+        students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
 
         updateStudentSelect();
         renderStudents();
@@ -386,12 +408,21 @@
         }
     }
 
+    // --- FUNZIONE ORDINAMENTO ALFABETICO ---
+    window.sortStudentsAlphabetically = async function() {
+        students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+        await saveData();
+        renderStudents();
+        updateStudentSelect();
+    }
+
     // --- ALLIEVI ---
     window.addStudent = async function() {
         const input = document.getElementById('studentName');
         const name = input.value.trim();
         if (name && typeof name === 'string' && name !== '[object Object]' && !students.includes(name)) {
             students.push(name);
+            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })); // Ordinamento automatico
             await saveData();
             input.value = '';
             renderStudents();
@@ -411,6 +442,7 @@
                 progress[trimmedNewName] = progress[oldName];
                 delete progress[oldName];
             }
+            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })); // Riordina dopo la modifica
             await saveData();
             renderStudents();
             updateStudentSelect();

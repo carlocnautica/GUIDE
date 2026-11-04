@@ -226,7 +226,7 @@
             font-size: 0.85rem;
         }
 
-        /* --- STILI ESAMI CORRETTI --- */
+        /* --- STILI ESAMI LAYOUT PULITO --- */
         .exam-card {
             background: #fdfdfd;
             border: 1px solid #ccd0d5;
@@ -252,7 +252,7 @@
             border: 1px solid #ddd;
             border-radius: 6px;
             padding: 8px 12px;
-            max-height: 220px;
+            max-height: 240px;
             overflow-y: auto;
             background: #fff;
             margin-top: 10px;
@@ -260,8 +260,8 @@
         }
         .student-check-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 12px;
             padding: 8px 5px;
             border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
@@ -276,14 +276,14 @@
             cursor: pointer;
             font-weight: 500;
             font-size: 0.95rem;
-            flex-grow: 1;
+            display: inline-block;
+            min-width: 220px;
             text-align: left;
         }
         .student-check-row input[type="checkbox"] {
             width: 20px;
             height: 20px;
             cursor: pointer;
-            margin-left: 15px;
             flex-shrink: 0;
             min-width: auto;
         }
@@ -362,10 +362,10 @@
     <div id="tab4" class="tab-content">
         <h2>Programmazione Esami</h2>
         <div style="background: #f1f3f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3>1. Crea Data Esame</h3>
+            <h3>Nuova Data Esame</h3>
             <div class="form-group" style="margin-bottom:0;">
                 <input type="date" id="examDate">
-                <button class="btn-add" onclick="createExam()">Crea Sessione Vuota</button>
+                <button class="btn-add" onclick="createExam()">Crea Sessione Esame</button>
             </div>
         </div>
 
@@ -528,7 +528,7 @@
         }
     }
 
-    // --- ESAMI (LAYOUT ALLINEATO) ---
+    // --- ESAMI (MODIFICA DATA + CHECKBOX A FIANCO) ---
     window.createExam = async function() {
         const dateInput = document.getElementById('examDate');
         const dateVal = dateInput.value;
@@ -550,6 +550,19 @@
         await saveData();
         dateInput.value = '';
         renderExams();
+    }
+
+    window.editExamDate = async function(examId, currentDate) {
+        const newDate = prompt("Inserisci la nuova data dell'esame (Formato: YYYY-MM-DD):", currentDate);
+        if (newDate && newDate.trim() !== "" && newDate !== currentDate) {
+            const exam = exams.find(e => e.id === examId);
+            if (exam) {
+                exam.date = newDate.trim();
+                exams.sort((a, b) => new Date(a.date) - new Date(b.date));
+                await saveData();
+                renderExams();
+            }
+        }
     }
 
     window.toggleStudentPicker = function(examId) {
@@ -612,6 +625,12 @@
             const btnGrp = document.createElement('div');
             btnGrp.className = 'btn-group';
 
+            const editDateBtn = document.createElement('button');
+            editDateBtn.className = 'btn-edit';
+            editDateBtn.textContent = '✏️ Data';
+            editDateBtn.title = 'Modifica data esame';
+            editDateBtn.onclick = () => editExamDate(exam.id, exam.date);
+
             const manageBtn = document.createElement('button');
             manageBtn.className = 'btn-manage-students';
             manageBtn.textContent = '➕ Gestisci Allievi';
@@ -622,6 +641,7 @@
             delBtn.textContent = 'Elimina Esame';
             delBtn.onclick = () => deleteExam(exam.id);
 
+            btnGrp.appendChild(editDateBtn);
             btnGrp.appendChild(manageBtn);
             btnGrp.appendChild(delBtn);
 
@@ -681,7 +701,7 @@
                         cb.checked = true;
                     }
 
-                    // Nome a sinistra (label), Checkbox a destra (cb)
+                    // Nome dell'allievo e checkbox subito a fianco
                     row.appendChild(lbl);
                     row.appendChild(cb);
                     scrollBox.appendChild(row);

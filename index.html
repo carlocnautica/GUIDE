@@ -5,18 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionale Allievi e Lezioni</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             color: #333;
         }
         .container {
             max-width: 850px;
+            width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 25px;
+            padding: 15px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
@@ -24,30 +28,34 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
+            padding-bottom: 12px;
             flex-wrap: wrap;
             gap: 10px;
         }
         header h1 {
             margin: 0;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             color: #007bff;
         }
         nav {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
+            width: 100%;
         }
         nav button {
-            padding: 8px 14px;
+            flex: 1 1 auto;
+            padding: 8px 10px;
             border: none;
             background: #e0e0e0;
             cursor: pointer;
             border-radius: 6px;
             font-weight: bold;
+            font-size: 0.85rem;
             transition: 0.3s;
+            text-align: center;
         }
         nav button.active {
             background: #007bff;
@@ -69,24 +77,27 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
-            flex: 1;
+            flex: 1 1 200px;
             font-size: 16px;
-            min-width: 200px;
+            width: 100%;
         }
         button.btn-add {
-            padding: 10px 20px;
+            padding: 10px 16px;
             background: #28a745;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            flex: 1 1 auto;
         }
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .btn-sort {
             background: #17a2b8;
@@ -111,10 +122,13 @@
             justify-content: space-between;
             align-items: center;
             border: 1px solid #ddd;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .btn-group {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
         }
         .btn-move {
             background: #6c757d;
@@ -133,18 +147,20 @@
             background: #dc3545;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 0.85rem;
         }
         .btn-edit {
             background: #ffc107;
             color: #212529;
             border: none;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.85rem;
         }
         .check-item {
             display: flex;
@@ -168,7 +184,7 @@
         }
         .lesson-name {
             font-weight: 500;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         .check-item input[type="checkbox"] {
             width: 22px;
@@ -200,17 +216,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: bold;
             color: #333;
         }
         .footer-tools {
-            margin-top: 30px;
+            margin-top: 25px;
             padding-top: 15px;
             border-top: 1px dashed #ccc;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .sync-status {
             font-size: 0.8rem;
@@ -226,14 +244,15 @@
             font-size: 0.85rem;
         }
 
-        /* --- STILI ESAMI LAYOUT PULITO --- */
+        /* --- STILI ESAMI MOBILE-FRIENDLY --- */
         .exam-card {
             background: #fdfdfd;
             border: 1px solid #ccd0d5;
             border-left: 5px solid #007bff;
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             margin-bottom: 15px;
+            width: 100%;
         }
         .exam-card-header {
             display: flex;
@@ -241,17 +260,18 @@
             align-items: center;
             margin-bottom: 10px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
         .exam-date {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #007bff;
+            word-break: break-word;
         }
         .student-selector-box {
             border: 1px solid #ddd;
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 8px;
             max-height: 240px;
             overflow-y: auto;
             background: #fff;
@@ -261,7 +281,7 @@
         .student-check-row {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             padding: 8px 5px;
             border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
@@ -275,54 +295,53 @@
         .student-check-row label {
             cursor: pointer;
             font-weight: 500;
-            font-size: 0.95rem;
-            display: inline-block;
-            min-width: 220px;
-            text-align: left;
+            font-size: 0.9rem;
+            flex: 1;
+            word-break: break-word;
         }
         .student-check-row input[type="checkbox"] {
             width: 20px;
             height: 20px;
             cursor: pointer;
             flex-shrink: 0;
-            min-width: auto;
         }
         .badge-count {
             background: #17a2b8;
             color: white;
-            padding: 3px 8px;
+            padding: 2px 7px;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: bold;
+            display: inline-block;
         }
         .tag-student {
             display: inline-block;
             background: #e9ecef;
             border: 1px solid #ced4da;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 15px;
-            margin: 3px;
-            font-size: 0.9rem;
+            margin: 2px;
+            font-size: 0.85rem;
         }
         .btn-manage-students {
             background: #007bff;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .btn-save-students {
             background: #28a745;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             display: block;
             width: 100%;
         }
@@ -361,8 +380,8 @@
     <!-- SCHEDA GESTIONE ESAMI -->
     <div id="tab4" class="tab-content">
         <h2>Programmazione Esami</h2>
-        <div style="background: #f1f3f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3>Nuova Data Esame</h3>
+        <div style="background: #f1f3f5; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="margin-top:0;">Nuova Data Esame</h3>
             <div class="form-group" style="margin-bottom:0;">
                 <input type="date" id="examDate">
                 <button class="btn-add" onclick="createExam()">Crea Sessione Esame</button>
@@ -528,7 +547,7 @@
         }
     }
 
-    // --- ESAMI (MODIFICA DATA + CHECKBOX A FIANCO) ---
+    // --- ESAMI ---
     window.createExam = async function() {
         const dateInput = document.getElementById('examDate');
         const dateVal = dateInput.value;
@@ -638,7 +657,7 @@
 
             const delBtn = document.createElement('button');
             delBtn.className = 'btn-delete';
-            delBtn.textContent = 'Elimina Esame';
+            delBtn.textContent = 'Elimina';
             delBtn.onclick = () => deleteExam(exam.id);
 
             btnGrp.appendChild(editDateBtn);
@@ -660,7 +679,7 @@
                     studentContainer.appendChild(tag);
                 });
             } else {
-                studentContainer.innerHTML = '<em style="color:#888; font-size:0.9rem;">Nessun allievo iscritto a questa sessione.</em>';
+                studentContainer.innerHTML = '<em style="color:#888; font-size:0.85rem;">Nessun allievo iscritto a questa sessione.</em>';
             }
             card.appendChild(studentContainer);
 
@@ -669,14 +688,14 @@
             pickerBox.id = `pickerBox_${exam.id}`;
             pickerBox.style.display = 'none';
             pickerBox.style.background = '#f8f9fa';
-            pickerBox.style.padding = '12px';
+            pickerBox.style.padding = '10px';
             pickerBox.style.borderRadius = '6px';
             pickerBox.style.border = '1px solid #007bff';
 
             const pickerTitle = document.createElement('strong');
-            pickerTitle.textContent = "Seleziona gli allievi per questa data:";
+            pickerTitle.textContent = "Seleziona allievi:";
             pickerTitle.style.display = 'block';
-            pickerTitle.style.fontSize = '0.9rem';
+            pickerTitle.style.fontSize = '0.85rem';
             pickerBox.appendChild(pickerTitle);
 
             const scrollBox = document.createElement('div');
@@ -701,7 +720,6 @@
                         cb.checked = true;
                     }
 
-                    // Nome dell'allievo e checkbox subito a fianco
                     row.appendChild(lbl);
                     row.appendChild(cb);
                     scrollBox.appendChild(row);

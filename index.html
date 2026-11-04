@@ -226,7 +226,7 @@
             font-size: 0.85rem;
         }
 
-        /* --- STILI ESAMI --- */
+        /* --- STILI ESAMI CORRETTI --- */
         .exam-card {
             background: #fdfdfd;
             border: 1px solid #ccd0d5;
@@ -251,22 +251,41 @@
         .student-selector-box {
             border: 1px solid #ddd;
             border-radius: 6px;
-            padding: 10px;
-            max-height: 180px;
+            padding: 8px 12px;
+            max-height: 220px;
             overflow-y: auto;
             background: #fff;
             margin-top: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .student-check-row {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
-            padding: 6px 0;
-            border-bottom: 1px solid #eee;
+            padding: 8px 5px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
         }
         .student-check-row:last-child {
             border-bottom: none;
+        }
+        .student-check-row:hover {
+            background-color: #f8f9fa;
+        }
+        .student-check-row label {
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            flex-grow: 1;
+            text-align: left;
+        }
+        .student-check-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-left: 15px;
+            flex-shrink: 0;
+            min-width: auto;
         }
         .badge-count {
             background: #17a2b8;
@@ -299,12 +318,13 @@
             background: #28a745;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.85rem;
-            margin-top: 5px;
+            font-size: 0.9rem;
+            display: block;
+            width: 100%;
         }
     </style>
 </head>
@@ -401,7 +421,7 @@
     let students = [];
     let lessons = [];
     let progress = {};
-    let exams = []; // [{ id: timestamp, date: "YYYY-MM-DD", students: ["Nome 1"] }]
+    let exams = [];
 
     function sanitizeArray(arr) {
         if (!Array.isArray(arr)) return [];
@@ -508,7 +528,7 @@
         }
     }
 
-    // --- ESAMI (2 PASSAGGI) ---
+    // --- ESAMI (LAYOUT ALLINEATO) ---
     window.createExam = async function() {
         const dateInput = document.getElementById('examDate');
         const dateVal = dateInput.value;
@@ -609,7 +629,7 @@
             header.appendChild(btnGrp);
             card.appendChild(header);
 
-            // Lista Allievi Iscritti (Tag)
+            // Lista Allievi Iscritti
             const studentContainer = document.createElement('div');
             studentContainer.style.marginBottom = '10px';
             if (exam.students && exam.students.length > 0) {
@@ -629,9 +649,9 @@
             pickerBox.id = `pickerBox_${exam.id}`;
             pickerBox.style.display = 'none';
             pickerBox.style.background = '#f8f9fa';
-            pickerBox.style.padding = '10px';
+            pickerBox.style.padding = '12px';
             pickerBox.style.borderRadius = '6px';
-            pickerBox.style.border = '1px dashed #007bff';
+            pickerBox.style.border = '1px solid #007bff';
 
             const pickerTitle = document.createElement('strong');
             pickerTitle.textContent = "Seleziona gli allievi per questa data:";
@@ -649,6 +669,10 @@
                     const row = document.createElement('div');
                     row.className = 'student-check-row';
 
+                    const lbl = document.createElement('label');
+                    lbl.htmlFor = `ex_${exam.id}_st_${sIdx}`;
+                    lbl.textContent = student;
+
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
                     cb.id = `ex_${exam.id}_st_${sIdx}`;
@@ -657,13 +681,9 @@
                         cb.checked = true;
                     }
 
-                    const lbl = document.createElement('label');
-                    lbl.htmlFor = `ex_${exam.id}_st_${sIdx}`;
-                    lbl.textContent = student;
-                    lbl.style.cursor = 'pointer';
-
-                    row.appendChild(cb);
+                    // Nome a sinistra (label), Checkbox a destra (cb)
                     row.appendChild(lbl);
+                    row.appendChild(cb);
                     scrollBox.appendChild(row);
                 });
             }

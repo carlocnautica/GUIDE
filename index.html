@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionale Allievi e Lezioni</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #007bff;
+        }
+        nav {
+            display: flex;
+            gap: 10px;
+        }
+        nav button {
+            padding: 8px 16px;
+            border: none;
+            background: #e0e0e0;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        nav button.active {
+            background: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input, select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            flex: 1;
+            font-size: 16px;
+        }
+        button.btn-add {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            padding: 12px;
+            background: #f9f9f9;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+        .btn-move {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-move:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .check-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #ffffff;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            user-select: none;
+        }
+        .check-item.completed {
+            background-color: #e8f5e9;
+            border-color: #a5d6a7;
+        }
+        .check-item.completed .lesson-name {
+            text-decoration: line-through;
+            color: #555;
+        }
+        .lesson-name {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .check-item input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+        
+        .progress-container {
+            margin-bottom: 20px;
+            background: #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 24px;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .footer-tools {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+            text-align: right;
+        }
+        .btn-clean {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Gestione Corsi</h1>
+        <nav>
+            <button id="btn-tab3" class="active" onclick="showTab(3)">📋 Registro</button>
+            <button id="btn-tab1" onclick="showTab(1)">👥 Allievi</button>
+            <button id="btn-tab2" onclick="showTab(2)">📚 Lezioni</button>
+        </nav>
+    </header>
+
+    <!-- PRIMA VISTA: Registro Check-off -->
+    <div id="tab3" class="tab-content active">
+        <h2>Registro Frequenza Lezioni</h2>
+        <div class="form-group">
+            <select id="studentSelect" onchange="loadStudentProgress()">
+                <option value="">-- Seleziona Allievo --</option>
+            </select>
+        </div>
+        
+        <div id="progressArea">
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+                <div id="progressText" class="progress-text">Seleziona un allievo</div>
+            </div>
+            <ul id="checklist"></ul>
+        </div>
+    </div>
+
+    <!-- Pagina 1: Gestione Allievi -->
+    <div id="tab1" class="tab-content">
+        <h2>Gestione Allievi</h2>
+        <div class="form-group">
+            <input type="text" id="studentName" placeholder="Nome cognome allievo" onkeyup="handleKeyPress(event, addStudent)">
+            <button class="btn-add" onclick="addStudent()">Aggiungi Allievo</button>
+        </div>
+        <ul id="studentList"></ul>
+    </div>
+
+    <!-- Pagina 2: Gestione Lezioni -->
+    <div id="tab2" class="tab-content">
+        <h2>Elenco Lezioni</h2>
+        <div class="form-group">
+            <input type="text" id="lessonName" placeholder="Nome della lezione" onkeyup="handleKeyPress(event, addLesson)">
+            <button class="btn-add" onclick="addLesson()">Aggiungi Lezione</button>
+        </div>
+        <ul id="lessonList"></ul>
+    </div>
+
+    <div class="footer-tools">
+        <button class="btn-clean" onclick="cleanCorruptedData()">🧹 Pulisci Dati</button>
+    </div>
+</div>
+
+<!-- SDK di Firebase e Firestore (Caricamento tramite moduli ES) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Configurazione Firebase fornita
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1W7kx-mf4WAhJ9Xlfhs3pLozzQzYMjwo",
+      authDomain: "guide-d7344.firebaseapp.com",
+      projectId: "guide-d7344",
+      storageBucket: "guide-d7344.firebasestorage.app",
+      messagingSenderId: "133709164243",
+      appId: "1:133709164243:web:65f1c54490567660512e26"
+    };
+
+    // Inizializza Firebase e Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let students = [];
+    let lessons = [];
+    let progress = {};
+
+    function sanitizeArray(arr) {
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(item => typeof item === 'string' && item !== '[object Object]' && item.trim() !== '');
+    }
+
+    // Funzione per salvare i dati su Firestore
+    async function saveData() {
+        students = sanitizeArray(students);
+        lessons = sanitizeArray(lessons);
+        
+        try {
+            await setDoc(doc(db, "corso", "dati_generali"), {
+                students: students,
+                lessons: lessons,
+                progress: progress
+            });
+        } catch (e) {
+            console.error("Errore durante il salvataggio su Firebase: ", e);
+        }
+    }
+
+    // Funzione per caricare i dati da Firestore all'avvio
+    async function loadData() {
+        try {
+            const docRef = doc(db, "corso", "dati_generali");
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                students = sanitizeArray(data.students || []);
+                lessons = sanitizeArray(data.lessons || []);
+                progress = data.progress || {};
+            } else {
+                // Se il documento non esiste, prova a recuperare dal localStorage come fallback iniziale
+                students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')));
+                lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')));
+                progress = JSON.parse(localStorage.getItem('app_progress')) || {};
+                await saveData(); // Salva inizialmente su Firestore
+            }
+        } catch (e) {
+            console.error("Errore nel caricamento da Firebase, uso fallback locale: ", e);
+            students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')));
+            lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')));
+            progress = JSON.parse(localStorage.getItem('app_progress')) || {};
+        }
+
+        updateStudentSelect();
+        renderStudents();
+        renderLessons();
+        loadStudentProgress();
+    }
+
+    window.showTab = function(num) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(`tab${num}`).classList.add('active');
+        document.getElementById(`btn-tab${num}`).classList.add('active');
+
+        if (num === 3) {
+            updateStudentSelect();
+            loadStudentProgress();
+        } else if (num === 1) {
+            renderStudents();
+        } else if (num === 2) {
+            renderLessons();
+        }
+    }
+
+    window.handleKeyPress = function(event, actionFunction) {
+        if (event.key === 'Enter') {
+            actionFunction();
+        }
+    }
+
+    // --- ALLIEVI ---
+    window.addStudent = async function() {
+        const input = document.getElementById('studentName');
+        const name = input.value.trim();
+        if (name && typeof name === 'string' && name !== '[object Object]' && !students.includes(name)) {
+            students.push(name);
+            await saveData();
+            input.value = '';
+            renderStudents();
+            updateStudentSelect();
+        }
+    }
+
+    window.editStudent = async function(oldName) {
+        const newName = prompt("Modifica il nome dell'allievo:", oldName);
+        if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
+            const trimmedNewName = newName.trim();
+            const index = students.indexOf(oldName);
+            if (index !== -1) {
+                students[index] = trimmedNewName;
+            }
+            if (progress[oldName] !== undefined) {
+                progress[trimmedNewName] = progress[oldName];
+                delete progress[oldName];
+            }
+            await saveData();
+            renderStudents();
+            updateStudentSelect();
+        }
+    }
+
+    window.deleteStudent = async function(name) {
+        if (confirm(`Sei sicuro di voler cancellare l'allievo "${name}"?`)) {
+            students = students.filter(s => s !== name);
+            delete progress[name];
+            await saveData();
+            renderStudents();
+            updateStudentSelect();
+        }
+    }
+
+    function renderStudents() {
+        const list = document.getElementById('studentList');
+        list.innerHTML = '';
+        students.forEach(student => {
+            const li = document.createElement('li');
+            
+            const span = document.createElement('span');
+            span.textContent = student;
+            
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit';
+            editBtn.textContent = 'Modifica';
+            editBtn.onclick = () => editStudent(student);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-delete';
+            deleteBtn.textContent = 'Cancella';
+            deleteBtn.onclick = () => deleteStudent(student);
+
+            btnGroup.appendChild(editBtn);
+            btnGroup.appendChild(deleteBtn);
+            li.appendChild(span);
+            li.appendChild(btnGroup);
+            list.appendChild(li);
+        });
+    }
+
+    // --- LEZIONI ---
+    window.addLesson = async function() {
+        const input = document.getElementById('lessonName');
+        const name = input.value.trim();
+        if (name && typeof name === 'string' && name !== '[object Object]' && !lessons.includes(name)) {
+            lessons.push(name);
+            await saveData();
+            input.value = '';
+            renderLessons();
+        }
+    }
+
+    window.moveLesson = async function(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= lessons.length) return;
+        
+        const temp = lessons[index];
+        lessons[index] = lessons[newIndex];
+        lessons[newIndex] = temp;
+
+        await saveData();
+        renderLessons();
+    }
+
+    window.editLesson = async function(oldName) {
+        const newName = prompt("Modifica il nome della lezione:", oldName);
+        if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
+            const trimmedNewName = newName.trim();
+            const index = lessons.indexOf(oldName);
+            if (index !== -1) {
+                lessons[index] = trimmedNewName;
+            }
+            Object.keys(progress).forEach(student => {
+                if (progress[student] && progress[student][oldName] !== undefined) {
+                    progress[student][trimmedNewName] = progress[student][oldName];
+                    delete progress[student][oldName];
+                }
+            });
+            await saveData();
+            renderLessons();
+        }
+    }
+
+    window.deleteLesson = async function(name) {
+        if (confirm(`Sei sicuro di voler eliminare la lezione "${name}"?`)) {
+            lessons = lessons.filter(l => l !== name);
+            Object.keys(progress).forEach(s => {
+                if (progress[s]) delete progress[s][name];
+            });
+            await saveData();
+            renderLessons();
+        }
+    }
+
+    function renderLessons() {
+        const list = document.getElementById('lessonList');
+        list.innerHTML = '';
+        lessons.forEach((lesson, index) => {
+            const li = document.createElement('li');
+            
+            const span = document.createElement('span');
+            span.textContent = lesson;
+
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn-move';
+            upBtn.textContent = '⬆️';
+            upBtn.title = 'Sposta su';
+            upBtn.disabled = index === 0;
+            upBtn.onclick = () => moveLesson(index, -1);
+
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn-move';
+            downBtn.textContent = '⬇️';
+            downBtn.title = 'Sposta giù';
+            downBtn.disabled = index === lessons.length - 1;
+            downBtn.onclick = () => moveLesson(index, 1);
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit';
+            editBtn.textContent = 'Modifica';
+            editBtn.onclick = () => editLesson(lesson);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-delete';
+            deleteBtn.textContent = 'Cancella';
+            deleteBtn.onclick = () => deleteLesson(lesson);
+
+            btnGroup.appendChild(upBtn);
+            btnGroup.appendChild(downBtn);
+            btnGroup.appendChild(editBtn);
+            btnGroup.appendChild(deleteBtn);
+            li.appendChild(span);
+            li.appendChild(btnGroup);
+            list.appendChild(li);
+        });
+    }
+
+    // --- REGISTRO ---
+    function updateStudentSelect() {
+        const select = document.getElementById('studentSelect');
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">-- Seleziona Allievo --</option>';
+        students.forEach(student => {
+            const opt = document.createElement('option');
+            opt.value = student;
+            opt.textContent = student;
+            if (student === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    window.loadStudentProgress = function() {
+        const student = document.getElementById('studentSelect').value;
+        const checklist = document.getElementById('checklist');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        checklist.innerHTML = '';
+
+        if (!student) {
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Seleziona un allievo';
+            return;
+        }
+
+        if (!progress[student]) {
+            progress[student] = {};
+        }
+
+        let completedCount = 0;
+        const totalLessons = lessons.length;
+
+        lessons.forEach(lesson => {
+            const isDone = !!progress[student][lesson];
+            if (isDone) completedCount++;
+
+            const li = document.createElement('li');
+            li.className = `check-item ${isDone ? 'completed' : ''}`;
+            
+            const span = document.createElement('span');
+            span.className = 'lesson-name';
+            span.textContent = lesson;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = isDone;
+
+            checkbox.addEventListener('change', (e) => {
+                toggleLesson(student, lesson, checkbox.checked);
+            });
+
+            li.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                    toggleLesson(student, lesson, checkbox.checked);
+                }
+            };
+
+            li.appendChild(span);
+            li.appendChild(checkbox);
+            checklist.appendChild(li);
+        });
+
+        const percentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `${completedCount} / ${totalLessons} lezioni completate (${percentage}%)`;
+    }
+
+    async function toggleLesson(student, lesson, isChecked) {
+        if (!progress[student]) progress[student] = {};
+        progress[student][lesson] = isChecked;
+        await saveData();
+        loadStudentProgress();
+    }
+
+    window.cleanCorruptedData = async function() {
+        students = sanitizeArray(students);
+        lessons = sanitizeArray(lessons);
+        if (progress['[object Object]']) {
+            delete progress['[object Object]'];
+        }
+        await saveData();
+        updateStudentSelect();
+        renderStudents();
+        renderLessons();
+        loadStudentProgress();
+        alert("Dati puliti e sincronizzati con successo!");
+    }
+
+    // Avvio caricamento dati da Firebase all'apertura della pagina
+    loadData();
+</script>
+
+</body>
+</html>

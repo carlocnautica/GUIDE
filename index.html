@@ -136,6 +136,7 @@
             border: 1px solid #ddd;
             cursor: pointer;
             user-select: none;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         .check-item.completed {
             background-color: #e8f5e9;
@@ -190,6 +191,13 @@
             padding-top: 15px;
             border-top: 1px dashed #ccc;
             text-align: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sync-status {
+            font-size: 0.8rem;
+            color: #666;
         }
         .btn-clean {
             background: #6c757d;
@@ -253,16 +261,16 @@
     </div>
 
     <div class="footer-tools">
+        <span id="syncStatus" class="sync-status">Stato: Connessione in corso...</span>
         <button class="btn-clean" onclick="cleanCorruptedData()">🧹 Pulisci Dati</button>
     </div>
 </div>
 
-<!-- SDK di Firebase e Firestore (Caricamento tramite moduli ES) -->
+<!-- SDK di Firebase e Firestore -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // Configurazione Firebase fornita
     const firebaseConfig = {
       apiKey: "AIzaSyD1W7kx-mf4WAhJ9Xlfhs3pLozzQzYMjwo",
       authDomain: "guide-d7344.firebaseapp.com",
@@ -272,7 +280,6 @@
       appId: "1:133709164243:web:65f1c54490567660512e26"
     };
 
-    // Inizializza Firebase e Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
@@ -285,10 +292,23 @@
         return arr.filter(item => typeof item === 'string' && item !== '[object Object]' && item.trim() !== '');
     }
 
-    // Funzione per salvare i dati su Firestore
+    function updateSyncStatus(text, isError = false) {
+        const statusEl = document.getElementById('syncStatus');
+        if (statusEl) {
+            statusEl.textContent = text;
+            statusEl.style.color = isError ? '#dc3545' : '#28a745';
+        }
+    }
+
+    // Salvataggio ibrido (Firebase + LocalStorage di riserva)
     async function saveData() {
         students = sanitizeArray(students);
         lessons = sanitizeArray(lessons);
+
+        // Salva sempre in locale come sicurezza immediata
+        localStorage.setItem('app_students', JSON.stringify(students));
+        localStorage.setItem('app_lessons', JSON.stringify(lessons));
+        localStorage.setItem('app_progress', JSON.stringify(progress));
         
         try {
             await setDoc(doc(db, "corso", "dati_generali"), {
@@ -296,12 +316,13 @@
                 lessons: lessons,
                 progress: progress
             });
+            updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
         } catch (e) {
-            console.error("Errore durante il salvataggio su Firebase: ", e);
+            console.error("Errore salvataggio Firebase: ", e);
+            updateSyncStatus("Stato: Salvato solo locale (Errore Cloud ⚠️)", true);
         }
     }
 
-    // Funzione per caricare i dati da Firestore all'avvio
     async function loadData() {
         try {
             const docRef = doc(db, "corso", "dati_generali");
@@ -312,24 +333,34 @@
                 students = sanitizeArray(data.students || []);
                 lessons = sanitizeArray(data.lessons || []);
                 progress = data.progress || {};
+                updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
             } else {
-                // Se il documento non esiste, prova a recuperare dal localStorage come fallback iniziale
-                students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')));
-                lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')));
-                progress = JSON.parse(localStorage.getItem('app_progress')) || {};
-                await saveData(); // Salva inizialmente su Firestore
+                // Se Firebase è vuoto, prova a caricare dal browser
+                loadFromLocalStorage();
+                await saveData();
             }
         } catch (e) {
-            console.error("Errore nel caricamento da Firebase, uso fallback locale: ", e);
-            students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')));
-            lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')));
-            progress = JSON.parse(localStorage.getItem('app_progress')) || {};
+            console.warn("Impossibile connettersi a Firebase, carico da memoria locale...", e);
+            loadFromLocalStorage();
+            updateSyncStatus("Stato: Modalità Offline 📂", true);
         }
 
         updateStudentSelect();
         renderStudents();
         renderLessons();
         loadStudentProgress();
+    }
+
+    function loadFromLocalStorage() {
+        try {
+            students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')) || []);
+            lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')) || []);
+            progress = JSON.parse(localStorage.getItem('app_progress')) || {};
+        } catch (err) {
+            students = [];
+            lessons = [];
+            progress = {};
+        }
     }
 
     window.showTab = function(num) {
@@ -576,14 +607,19 @@
             checkbox.type = 'checkbox';
             checkbox.checked = isDone;
 
-            checkbox.addEventListener('change', (e) => {
-                toggleLesson(student, lesson, checkbox.checked);
+            const handleToggle = async () => {
+                const newState = !checkbox.checked;
+                checkbox.checked = newState;
+                await toggleLesson(student, lesson, newState);
+            };
+
+            checkbox.addEventListener('change', async () => {
+                await toggleLesson(student, lesson, checkbox.checked);
             });
 
-            li.onclick = (e) => {
+            li.onclick = async (e) => {
                 if (e.target.tagName !== 'INPUT') {
-                    checkbox.checked = !checkbox.checked;
-                    toggleLesson(student, lesson, checkbox.checked);
+                    await handleToggle();
                 }
             };
 
@@ -618,7 +654,6 @@
         alert("Dati puliti e sincronizzati con successo!");
     }
 
-    // Avvio caricamento dati da Firebase all'apertura della pagina
     loadData();
 </script>
 

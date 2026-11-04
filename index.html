@@ -13,7 +13,7 @@
             color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
             background: #fff;
             padding: 25px;
@@ -27,6 +27,8 @@
             margin-bottom: 25px;
             border-bottom: 2px solid #eee;
             padding-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         header h1 {
             margin: 0;
@@ -35,10 +37,11 @@
         }
         nav {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         nav button {
-            padding: 8px 16px;
+            padding: 8px 14px;
             border: none;
             background: #e0e0e0;
             cursor: pointer;
@@ -60,6 +63,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         input, select {
             padding: 10px;
@@ -67,6 +71,7 @@
             border-radius: 6px;
             flex: 1;
             font-size: 16px;
+            min-width: 200px;
         }
         button.btn-add {
             padding: 10px 20px;
@@ -92,9 +97,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 0.85rem;
-        }
-        .btn-sort:hover {
-            background: #138496;
         }
         ul {
             list-style: none;
@@ -155,7 +157,6 @@
             border: 1px solid #ddd;
             cursor: pointer;
             user-select: none;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         .check-item.completed {
             background-color: #e8f5e9;
@@ -175,7 +176,6 @@
             cursor: pointer;
             flex: 0 0 auto;
         }
-        
         .progress-container {
             margin-bottom: 20px;
             background: #e9ecef;
@@ -204,12 +204,10 @@
             font-weight: bold;
             color: #333;
         }
-
         .footer-tools {
             margin-top: 30px;
             padding-top: 15px;
             border-top: 1px dashed #ccc;
-            text-align: right;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -227,21 +225,78 @@
             cursor: pointer;
             font-size: 0.85rem;
         }
+
+        /* --- STILI PER LA SCHEDA ESAMI --- */
+        .exam-card {
+            background: #fdfdfd;
+            border: 1px solid #ccd0d5;
+            border-left: 5px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .exam-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .exam-date {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .student-selector-box {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fff;
+            margin-bottom: 15px;
+        }
+        .student-check-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .student-check-row:last-child {
+            border-bottom: none;
+        }
+        .badge-count {
+            background: #17a2b8;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .tag-student {
+            display: inline-block;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 4px 10px;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-
 <div class="container">
     <header>
         <h1>Gestione Corsi</h1>
         <nav>
             <button id="btn-tab3" class="active" onclick="showTab(3)">📋 Registro</button>
+            <button id="btn-tab4" onclick="showTab(4)">🎓 Esami</button>
             <button id="btn-tab1" onclick="showTab(1)">👥 Allievi</button>
             <button id="btn-tab2" onclick="showTab(2)">📚 Lezioni</button>
         </nav>
     </header>
 
-    <!-- PRIMA VISTA: Registro Check-off -->
+    <!-- REGISTRO LEZIONI -->
     <div id="tab3" class="tab-content active">
         <h2>Registro Frequenza Lezioni</h2>
         <div class="form-group">
@@ -259,7 +314,26 @@
         </div>
     </div>
 
-    <!-- Pagina 1: Gestione Allievi -->
+    <!-- SCHEDA GESTIONE ESAMI -->
+    <div id="tab4" class="tab-content">
+        <h2>Programmazione Esami</h2>
+        <div style="background: #f1f3f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3>Nuova Sessione d'Esame</h3>
+            <div class="form-group">
+                <input type="date" id="examDate">
+                <button class="btn-add" onclick="createExam()">Crea Sessione</button>
+            </div>
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Seleziona Allievi per questo esame:</label>
+            <div id="examStudentPicker" class="student-selector-box">
+                <!-- Generato dinamicamente -->
+            </div>
+        </div>
+
+        <h2>Sessioni Programmate</h2>
+        <div id="examList"></div>
+    </div>
+
+    <!-- GESTIONE ALLIEVI -->
     <div id="tab1" class="tab-content">
         <div class="section-header">
             <h2>Gestione Allievi</h2>
@@ -272,7 +346,7 @@
         <ul id="studentList"></ul>
     </div>
 
-    <!-- Pagina 2: Gestione Lezioni -->
+    <!-- GESTIONE LEZIONI -->
     <div id="tab2" class="tab-content">
         <h2>Elenco Lezioni</h2>
         <div class="form-group">
@@ -288,7 +362,6 @@
     </div>
 </div>
 
-<!-- SDK di Firebase e Firestore -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -308,6 +381,7 @@
     let students = [];
     let lessons = [];
     let progress = {};
+    let exams = []; // Struttura: [{ id: timestamp, date: "YYYY-MM-DD", students: ["Nome 1", "Nome 2"] }]
 
     function sanitizeArray(arr) {
         if (!Array.isArray(arr)) return [];
@@ -325,16 +399,18 @@
     async function saveData() {
         students = sanitizeArray(students);
         lessons = sanitizeArray(lessons);
-
+        
         localStorage.setItem('app_students', JSON.stringify(students));
         localStorage.setItem('app_lessons', JSON.stringify(lessons));
         localStorage.setItem('app_progress', JSON.stringify(progress));
+        localStorage.setItem('app_exams', JSON.stringify(exams));
         
         try {
             await setDoc(doc(db, "corso", "dati_generali"), {
                 students: students,
                 lessons: lessons,
-                progress: progress
+                progress: progress,
+                exams: exams
             });
             updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
         } catch (e) {
@@ -353,6 +429,7 @@
                 students = sanitizeArray(data.students || []);
                 lessons = sanitizeArray(data.lessons || []);
                 progress = data.progress || {};
+                exams = data.exams || [];
                 updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
             } else {
                 loadFromLocalStorage();
@@ -364,13 +441,13 @@
             updateSyncStatus("Stato: Modalità Offline 📂", true);
         }
 
-        // Ordina alfabeticamente all'avvio per pulizia
         students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
-
         updateStudentSelect();
         renderStudents();
         renderLessons();
         loadStudentProgress();
+        renderExamPicker();
+        renderExams();
     }
 
     function loadFromLocalStorage() {
@@ -378,10 +455,12 @@
             students = sanitizeArray(JSON.parse(localStorage.getItem('app_students')) || []);
             lessons = sanitizeArray(JSON.parse(localStorage.getItem('app_lessons')) || []);
             progress = JSON.parse(localStorage.getItem('app_progress')) || {};
+            exams = JSON.parse(localStorage.getItem('app_exams')) || [];
         } catch (err) {
             students = [];
             lessons = [];
             progress = {};
+            exams = [];
         }
     }
 
@@ -395,6 +474,9 @@
         if (num === 3) {
             updateStudentSelect();
             loadStudentProgress();
+        } else if (num === 4) {
+            renderExamPicker();
+            renderExams();
         } else if (num === 1) {
             renderStudents();
         } else if (num === 2) {
@@ -408,7 +490,127 @@
         }
     }
 
-    // --- FUNZIONE ORDINAMENTO ALFABETICO ---
+    // --- ESAMI ---
+    function renderExamPicker() {
+        const picker = document.getElementById('examStudentPicker');
+        picker.innerHTML = '';
+        
+        if (students.length === 0) {
+            picker.innerHTML = '<span style="color:#888;">Nessun allievo presente. Aggiungine prima qualcuno nella sezione Allievi.</span>';
+            return;
+        }
+
+        students.forEach((student, index) => {
+            const row = document.createElement('div');
+            row.className = 'student-check-row';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `exam_st_${index}`;
+            checkbox.value = student;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `exam_st_${index}`;
+            label.textContent = student;
+            label.style.cursor = 'pointer';
+            
+            row.appendChild(checkbox);
+            row.appendChild(label);
+            picker.appendChild(row);
+        });
+    }
+
+    window.createExam = async function() {
+        const dateInput = document.getElementById('examDate');
+        const dateVal = dateInput.value;
+        
+        if (!dateVal) {
+            alert("Seleziona una data per l'esame!");
+            return;
+        }
+
+        const selectedStudents = [];
+        document.querySelectorAll('#examStudentPicker input[type="checkbox"]:checked').forEach(cb => {
+            selectedStudents.push(cb.value);
+        });
+
+        const newExam = {
+            id: Date.now(),
+            date: dateVal,
+            students: selectedStudents
+        };
+
+        exams.push(newExam);
+        exams.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordine cronologico
+
+        await saveData();
+        dateInput.value = '';
+        renderExamPicker();
+        renderExams();
+    }
+
+    window.deleteExam = async function(examId) {
+        if (confirm("Sei sicuro di voler eliminare questa sessione d'esame?")) {
+            exams = exams.filter(e => e.id !== examId);
+            await saveData();
+            renderExams();
+        }
+    }
+
+    function renderExams() {
+        const container = document.getElementById('examList');
+        container.innerHTML = '';
+
+        if (exams.length === 0) {
+            container.innerHTML = '<p style="color:#666;">Nessuna sessione d\'esame programmata.</p>';
+            return;
+        }
+
+        exams.forEach(exam => {
+            const card = document.createElement('div');
+            card.className = 'exam-card';
+
+            const formattedDate = new Date(exam.date + 'T00:00:00').toLocaleDateString('it-IT', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const header = document.createElement('div');
+            header.className = 'exam-card-header';
+
+            const title = document.createElement('div');
+            title.className = 'exam-date';
+            title.innerHTML = `📅 ${formattedDate} <span class="badge-count">${exam.students.length} Allievi</span>`;
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-delete';
+            delBtn.textContent = 'Elimina Esame';
+            delBtn.onclick = () => deleteExam(exam.id);
+
+            header.appendChild(title);
+            header.appendChild(delBtn);
+            card.appendChild(header);
+
+            const studentContainer = document.createElement('div');
+            if (exam.students.length > 0) {
+                exam.students.forEach(s => {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag-student';
+                    tag.textContent = `👤 ${s}`;
+                    studentContainer.appendChild(tag);
+                });
+            } else {
+                studentContainer.innerHTML = '<em style="color:#888; font-size:0.9rem;">Nessun allievo iscritto a questa sessione.</em>';
+            }
+
+            card.appendChild(studentContainer);
+            container.appendChild(card);
+        });
+    }
+
+    // --- ALLIEVI ---
     window.sortStudentsAlphabetically = async function() {
         students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
         await saveData();
@@ -416,13 +618,12 @@
         updateStudentSelect();
     }
 
-    // --- ALLIEVI ---
     window.addStudent = async function() {
         const input = document.getElementById('studentName');
         const name = input.value.trim();
         if (name && typeof name === 'string' && name !== '[object Object]' && !students.includes(name)) {
             students.push(name);
-            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })); // Ordinamento automatico
+            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
             await saveData();
             input.value = '';
             renderStudents();
@@ -435,17 +636,24 @@
         if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
             const trimmedNewName = newName.trim();
             const index = students.indexOf(oldName);
-            if (index !== -1) {
-                students[index] = trimmedNewName;
-            }
+            if (index !== -1) students[index] = trimmedNewName;
+
             if (progress[oldName] !== undefined) {
                 progress[trimmedNewName] = progress[oldName];
                 delete progress[oldName];
             }
-            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' })); // Riordina dopo la modifica
+
+            // Aggiorna nome anche negli esami
+            exams.forEach(exam => {
+                const sIndex = exam.students.indexOf(oldName);
+                if (sIndex !== -1) exam.students[sIndex] = trimmedNewName;
+            });
+
+            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
             await saveData();
             renderStudents();
             updateStudentSelect();
+            renderExams();
         }
     }
 
@@ -453,9 +661,16 @@
         if (confirm(`Sei sicuro di voler cancellare l'allievo "${name}"?`)) {
             students = students.filter(s => s !== name);
             delete progress[name];
+
+            // Rimuovi allievo da eventuali esami
+            exams.forEach(exam => {
+                exam.students = exam.students.filter(s => s !== name);
+            });
+
             await saveData();
             renderStudents();
             updateStudentSelect();
+            renderExams();
         }
     }
 
@@ -464,23 +679,22 @@
         list.innerHTML = '';
         students.forEach(student => {
             const li = document.createElement('li');
-            
             const span = document.createElement('span');
             span.textContent = student;
             
             const btnGroup = document.createElement('div');
             btnGroup.className = 'btn-group';
-
+            
             const editBtn = document.createElement('button');
             editBtn.className = 'btn-edit';
             editBtn.textContent = 'Modifica';
             editBtn.onclick = () => editStudent(student);
-
+            
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn-delete';
             deleteBtn.textContent = 'Cancella';
             deleteBtn.onclick = () => deleteStudent(student);
-
+            
             btnGroup.appendChild(editBtn);
             btnGroup.appendChild(deleteBtn);
             li.appendChild(span);
@@ -508,7 +722,6 @@
         const temp = lessons[index];
         lessons[index] = lessons[newIndex];
         lessons[newIndex] = temp;
-
         await saveData();
         renderLessons();
     }
@@ -518,9 +731,8 @@
         if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
             const trimmedNewName = newName.trim();
             const index = lessons.indexOf(oldName);
-            if (index !== -1) {
-                lessons[index] = trimmedNewName;
-            }
+            if (index !== -1) lessons[index] = trimmedNewName;
+
             Object.keys(progress).forEach(student => {
                 if (progress[student] && progress[student][oldName] !== undefined) {
                     progress[student][trimmedNewName] = progress[student][oldName];
@@ -548,7 +760,6 @@
         list.innerHTML = '';
         lessons.forEach((lesson, index) => {
             const li = document.createElement('li');
-            
             const span = document.createElement('span');
             span.textContent = lesson;
 
@@ -558,14 +769,12 @@
             const upBtn = document.createElement('button');
             upBtn.className = 'btn-move';
             upBtn.textContent = '⬆️';
-            upBtn.title = 'Sposta su';
             upBtn.disabled = index === 0;
             upBtn.onclick = () => moveLesson(index, -1);
 
             const downBtn = document.createElement('button');
             downBtn.className = 'btn-move';
             downBtn.textContent = '⬇️';
-            downBtn.title = 'Sposta giù';
             downBtn.disabled = index === lessons.length - 1;
             downBtn.onclick = () => moveLesson(index, 1);
 
@@ -610,16 +819,12 @@
         const progressText = document.getElementById('progressText');
         
         checklist.innerHTML = '';
-
         if (!student) {
             progressBar.style.width = '0%';
             progressText.textContent = 'Seleziona un allievo';
             return;
         }
-
-        if (!progress[student]) {
-            progress[student] = {};
-        }
+        if (!progress[student]) progress[student] = {};
 
         let completedCount = 0;
         const totalLessons = lessons.length;
@@ -675,19 +880,17 @@
     window.cleanCorruptedData = async function() {
         students = sanitizeArray(students);
         lessons = sanitizeArray(lessons);
-        if (progress['[object Object]']) {
-            delete progress['[object Object]'];
-        }
+        if (progress['[object Object]']) delete progress['[object Object]'];
         await saveData();
         updateStudentSelect();
         renderStudents();
         renderLessons();
         loadStudentProgress();
+        renderExams();
         alert("Dati puliti e sincronizzati con successo!");
     }
 
     loadData();
 </script>
-
 </body>
 </html>

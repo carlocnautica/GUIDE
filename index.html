@@ -625,6 +625,14 @@
             return;
         }
 
+        // Raccogliamo tutti gli allievi già assegnati a QUALSIASI esame
+        const allAssignedStudents = [];
+        exams.forEach(e => {
+            if (e.students) {
+                allAssignedStudents.push(...e.students);
+            }
+        });
+
         exams.forEach(exam => {
             const card = document.createElement('div');
             card.className = 'exam-card';
@@ -703,18 +711,17 @@
             const scrollBox = document.createElement('div');
             scrollBox.className = 'student-selector-box';
 
-            // Filtro: mostra solo gli allievi che NON sono ancora nell'esame
-            const availableStudents = students.filter(s => !exam.students.includes(s));
+            // Filtro globale: esclude chi è già assegnato a qualsiasi esame
+            const availableStudents = students.filter(s => !allAssignedStudents.includes(s));
 
             if (availableStudents.length === 0) {
-                scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Tutti gli allievi presenti sono già inseriti in questa sessione.</span>';
+                scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Tutti gli allievi sono già stati inseriti in una sessione d\'esame.</span>';
             } else {
                 availableStudents.forEach((student) => {
                     const row = document.createElement('div');
                     row.className = 'student-check-row';
 
                     const lbl = document.createElement('label');
-                    // ID univoco basato sull'ID dell'esame e sul nome dell'allievo codificato per sicurezza
                     const safeId = `ex_${exam.id}_st_${btoa(student).replace(/=/g, '')}`;
                     lbl.htmlFor = safeId;
                     lbl.textContent = student;

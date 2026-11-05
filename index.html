@@ -596,12 +596,16 @@
         const exam = exams.find(e => e.id === examId);
         if (!exam) return;
 
-        const selected = [];
+        // Mantieni gli allievi già salvati e aggiungi quelli spuntati dal selettore
+        const newSelected = [];
         document.querySelectorAll(`#pickerBox_${examId} input[type="checkbox"]:checked`).forEach(cb => {
-            selected.push(cb.value);
+            newSelected.push(cb.value);
         });
 
-        exam.students = selected;
+        const currentStudents = exam.students || [];
+        // Unisci mantenendo l'unicità
+        exam.students = Array.from(new Set([...currentStudents, ...newSelected]));
+
         await saveData();
         renderExams();
     }
@@ -652,7 +656,7 @@
 
             const manageBtn = document.createElement('button');
             manageBtn.className = 'btn-manage-students';
-            manageBtn.textContent = '➕ Gestisci Allievi';
+            manageBtn.textContent = '➕ Aggiungi Allievi';
             manageBtn.onclick = () => toggleStudentPicker(exam.id);
 
             const delBtn = document.createElement('button');
@@ -693,7 +697,7 @@
             pickerBox.style.border = '1px solid #007bff';
 
             const pickerTitle = document.createElement('strong');
-            pickerTitle.textContent = "Seleziona allievi:";
+            pickerTitle.textContent = "Seleziona allievi da aggiungere:";
             pickerTitle.style.display = 'block';
             pickerTitle.style.fontSize = '0.85rem';
             pickerBox.appendChild(pickerTitle);
@@ -701,10 +705,13 @@
             const scrollBox = document.createElement('div');
             scrollBox.className = 'student-selector-box';
 
-            if (students.length === 0) {
-                scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Nessun allievo presente nel sistema.</span>';
+            // Filtro: mostra solo gli allievi che NON sono ancora nell'esame
+            const availableStudents = students.filter(s => !exam.students.includes(s));
+
+            if (availableStudents.length === 0) {
+                scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Tutti gli allievi presenti sono già inseriti in questa sessione.</span>';
             } else {
-                students.forEach((student, sIdx) => {
+                availableStudents.forEach((student, sIdx) => {
                     const row = document.createElement('div');
                     row.className = 'student-check-row';
 
@@ -716,9 +723,6 @@
                     cb.type = 'checkbox';
                     cb.id = `ex_${exam.id}_st_${sIdx}`;
                     cb.value = student;
-                    if (exam.students && exam.students.includes(student)) {
-                        cb.checked = true;
-                    }
 
                     row.appendChild(lbl);
                     row.appendChild(cb);
@@ -728,11 +732,13 @@
 
             pickerBox.appendChild(scrollBox);
 
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'btn-save-students';
-            saveBtn.textContent = '💾 Salva Allievi Selezionati';
-            saveBtn.onclick = () => saveExamStudents(exam.id);
-            pickerBox.appendChild(saveBtn);
+            if (availableStudents.length > 0) {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn-save-students';
+                saveBtn.textContent = '💾 Aggiungi Allievi Selezionati';
+                saveBtn.onclick = () => saveExamStudents(exam.id);
+                pickerBox.appendChild(saveBtn);
+            }
 
             card.appendChild(pickerBox);
             container.appendChild(card);

@@ -596,14 +596,12 @@
         const exam = exams.find(e => e.id === examId);
         if (!exam) return;
 
-        // Mantieni gli allievi già salvati e aggiungi quelli spuntati dal selettore
         const newSelected = [];
         document.querySelectorAll(`#pickerBox_${examId} input[type="checkbox"]:checked`).forEach(cb => {
             newSelected.push(cb.value);
         });
 
         const currentStudents = exam.students || [];
-        // Unisci mantenendo l'unicità
         exam.students = Array.from(new Set([...currentStudents, ...newSelected]));
 
         await saveData();
@@ -711,17 +709,19 @@
             if (availableStudents.length === 0) {
                 scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Tutti gli allievi presenti sono già inseriti in questa sessione.</span>';
             } else {
-                availableStudents.forEach((student, sIdx) => {
+                availableStudents.forEach((student) => {
                     const row = document.createElement('div');
                     row.className = 'student-check-row';
 
                     const lbl = document.createElement('label');
-                    lbl.htmlFor = `ex_${exam.id}_st_${sIdx}`;
+                    // ID univoco basato sull'ID dell'esame e sul nome dell'allievo codificato per sicurezza
+                    const safeId = `ex_${exam.id}_st_${btoa(student).replace(/=/g, '')}`;
+                    lbl.htmlFor = safeId;
                     lbl.textContent = student;
 
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
-                    cb.id = `ex_${exam.id}_st_${sIdx}`;
+                    cb.id = safeId;
                     cb.value = student;
 
                     row.appendChild(lbl);

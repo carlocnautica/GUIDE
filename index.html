@@ -54,7 +54,7 @@
             border-radius: 6px;
             font-weight: bold;
             font-size: 0.85rem;
-            transition: 0.3s;
+            transition: 0.2s;
             text-align: center;
         }
         nav button.active {
@@ -315,12 +315,69 @@
             display: inline-block;
         }
         .tag-student {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: #e9ecef;
             border: 1px solid #ced4da;
             padding: 3px 8px;
             border-radius: 15px;
             margin: 2px;
+            font-size: 0.85rem;
+        }
+        .tag-swap {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #664d03;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+        .tag-remove {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 2px;
+            font-size: 0.95rem;
+            line-height: 1;
+        }
+        .swap-box {
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ffc107;
+            margin-bottom: 10px;
+        }
+        .swap-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-confirm-swap {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+        .btn-cancel-swap {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
             font-size: 0.85rem;
         }
         .btn-manage-students {
@@ -367,7 +424,7 @@
                 <option value="">-- Seleziona Allievo --</option>
             </select>
         </div>
-        
+
         <div id="progressArea">
             <div class="progress-container">
                 <div id="progressBar" class="progress-bar"></div>
@@ -441,10 +498,17 @@
     let lessons = [];
     let progress = {};
     let exams = [];
+    let saveQueue = Promise.resolve();
+    let activeSwapTarget = null; // { examId, oldStudent }
 
     function sanitizeArray(arr) {
         if (!Array.isArray(arr)) return [];
         return arr.filter(item => typeof item === 'string' && item !== '[object Object]' && item.trim() !== '');
+    }
+
+    function hasDuplicate(list, candidate, excludeValue = null) {
+        const norm = candidate.trim().toLowerCase();
+        return list.some(item => item !== excludeValue && item.trim().toLowerCase() === norm);
     }
 
     function updateSyncStatus(text, isError = false) {
@@ -455,40 +519,46 @@
         }
     }
 
-    async function saveData() {
+    function saveData() {
         students = sanitizeArray(students);
         lessons = sanitizeArray(lessons);
-        
+
         localStorage.setItem('app_students', JSON.stringify(students));
         localStorage.setItem('app_lessons', JSON.stringify(lessons));
         localStorage.setItem('app_progress', JSON.stringify(progress));
         localStorage.setItem('app_exams', JSON.stringify(exams));
-        
-        try {
-            await setDoc(doc(db, "corso", "dati_generali"), {
-                students: students,
-                lessons: lessons,
-                progress: progress,
-                exams: exams
-            });
-            updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
-        } catch (e) {
-            console.error("Errore salvataggio Firebase: ", e);
-            updateSyncStatus("Stato: Salvato solo locale (Errore Cloud ⚠️)", true);
-        }
+
+        const payload = {
+            students: [...students],
+            lessons: [...lessons],
+            progress: JSON.parse(JSON.stringify(progress)),
+            exams: JSON.parse(JSON.stringify(exams))
+        };
+
+        saveQueue = saveQueue.then(async () => {
+            try {
+                await setDoc(doc(db, "corso", "dati_generali"), payload);
+                updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
+            } catch (e) {
+                console.error("Errore salvataggio Firebase: ", e);
+                updateSyncStatus("Stato: Salvato solo locale (Errore Cloud ⚠️)", true);
+            }
+        });
+
+        return saveQueue;
     }
 
     async function loadData() {
         try {
             const docRef = doc(db, "corso", "dati_generali");
             const docSnap = await getDoc(docRef);
-            
+
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 students = sanitizeArray(data.students || []);
                 lessons = sanitizeArray(data.lessons || []);
-                progress = data.progress || {};
-                exams = data.exams || [];
+                progress = data.progress && typeof data.progress === 'object' ? data.progress : {};
+                exams = Array.isArray(data.exams) ? data.exams : [];
                 updateSyncStatus("Stato: Sincronizzato con Cloud ☁️");
             } else {
                 loadFromLocalStorage();
@@ -525,7 +595,7 @@
     window.showTab = function(num) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-        
+
         document.getElementById(`tab${num}`).classList.add('active');
         document.getElementById(`btn-tab${num}`).classList.add('active');
 
@@ -539,19 +609,19 @@
         } else if (num === 2) {
             renderLessons();
         }
-    }
+    };
 
     window.handleKeyPress = function(event, actionFunction) {
         if (event.key === 'Enter') {
             actionFunction();
         }
-    }
+    };
 
     // --- ESAMI ---
     window.createExam = async function() {
         const dateInput = document.getElementById('examDate');
         const dateVal = dateInput.value;
-        
+
         if (!dateVal) {
             alert("Seleziona una data per l'esame!");
             return;
@@ -569,20 +639,26 @@
         await saveData();
         dateInput.value = '';
         renderExams();
-    }
+    };
 
     window.editExamDate = async function(examId, currentDate) {
         const newDate = prompt("Inserisci la nuova data dell'esame (Formato: YYYY-MM-DD):", currentDate);
-        if (newDate && newDate.trim() !== "" && newDate !== currentDate) {
+        if (!newDate) return;
+        const trimmed = newDate.trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed) || Number.isNaN(new Date(trimmed + 'T00:00:00').getTime())) {
+            alert("Formato data non valido. Usa YYYY-MM-DD (es. 2026-12-15).");
+            return;
+        }
+        if (trimmed !== currentDate) {
             const exam = exams.find(e => e.id === examId);
             if (exam) {
-                exam.date = newDate.trim();
+                exam.date = trimmed;
                 exams.sort((a, b) => new Date(a.date) - new Date(b.date));
                 await saveData();
                 renderExams();
             }
         }
-    }
+    };
 
     window.toggleStudentPicker = function(examId) {
         const pickerBox = document.getElementById(`pickerBox_${examId}`);
@@ -590,7 +666,43 @@
             const isHidden = pickerBox.style.display === 'none';
             pickerBox.style.display = isHidden ? 'block' : 'none';
         }
-    }
+    };
+
+    window.openSwapStudent = function(examId, oldStudent) {
+        if (activeSwapTarget && activeSwapTarget.examId === examId && activeSwapTarget.oldStudent === oldStudent) {
+            activeSwapTarget = null;
+        } else {
+            activeSwapTarget = { examId, oldStudent };
+        }
+        renderExams();
+    };
+
+    window.cancelSwapStudent = function() {
+        activeSwapTarget = null;
+        renderExams();
+    };
+
+    window.confirmSwapStudent = async function(examId, oldStudent) {
+        const selectEl = document.getElementById(`swapSelect_${examId}`);
+        if (!selectEl) return;
+        const newStudent = selectEl.value;
+        if (!newStudent) {
+            alert("Seleziona l'allievo con cui sostituire la prenotazione.");
+            return;
+        }
+
+        const exam = exams.find(e => e.id === examId);
+        if (!exam || !Array.isArray(exam.students)) return;
+
+        const idx = exam.students.indexOf(oldStudent);
+        if (idx === -1) return;
+
+        exam.students[idx] = newStudent;
+        activeSwapTarget = null;
+
+        await saveData();
+        renderExams();
+    };
 
     window.saveExamStudents = async function(examId) {
         const exam = exams.find(e => e.id === examId);
@@ -606,15 +718,29 @@
 
         await saveData();
         renderExams();
-    }
+    };
+
+    window.removeStudentFromExam = async function(examId, studentName) {
+        const exam = exams.find(e => e.id === examId);
+        if (!exam || !Array.isArray(exam.students)) return;
+        exam.students = exam.students.filter(s => s !== studentName);
+        if (activeSwapTarget && activeSwapTarget.examId === examId && activeSwapTarget.oldStudent === studentName) {
+            activeSwapTarget = null;
+        }
+        await saveData();
+        renderExams();
+    };
 
     window.deleteExam = async function(examId) {
         if (confirm("Sei sicuro di voler eliminare questa sessione d'esame?")) {
             exams = exams.filter(e => e.id !== examId);
+            if (activeSwapTarget && activeSwapTarget.examId === examId) {
+                activeSwapTarget = null;
+            }
             await saveData();
             renderExams();
         }
-    }
+    };
 
     function renderExams() {
         const container = document.getElementById('examList');
@@ -625,7 +751,6 @@
             return;
         }
 
-        // Raccogliamo tutti gli allievi già assegnati a QUALSIASI esame
         const allAssignedStudents = [];
         exams.forEach(e => {
             if (e.students) {
@@ -637,19 +762,22 @@
             const card = document.createElement('div');
             card.className = 'exam-card';
 
-            const formattedDate = new Date(exam.date + 'T00:00:00').toLocaleDateString('it-IT', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            const parsedDate = new Date(exam.date + 'T00:00:00');
+            const formattedDate = Number.isNaN(parsedDate.getTime())
+                ? exam.date
+                : parsedDate.toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
 
             const header = document.createElement('div');
             header.className = 'exam-card-header';
 
             const title = document.createElement('div');
             title.className = 'exam-date';
-            title.innerHTML = `📅 ${formattedDate} <span class="badge-count">${exam.students.length} Allievi</span>`;
+            title.innerHTML = `📅 ${formattedDate} <span class="badge-count">${(exam.students || []).length} Allievi</span>`;
 
             const btnGrp = document.createElement('div');
             btnGrp.className = 'btn-group';
@@ -678,14 +806,33 @@
             header.appendChild(btnGrp);
             card.appendChild(header);
 
-            // Lista Allievi Iscritti
             const studentContainer = document.createElement('div');
             studentContainer.style.marginBottom = '10px';
             if (exam.students && exam.students.length > 0) {
                 exam.students.forEach(s => {
                     const tag = document.createElement('span');
                     tag.className = 'tag-student';
-                    tag.textContent = `👤 ${s}`;
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = `👤 ${s}`;
+
+                    const swapBtn = document.createElement('button');
+                    swapBtn.type = 'button';
+                    swapBtn.className = 'tag-swap';
+                    swapBtn.textContent = '🔄 Cambia';
+                    swapBtn.title = `Sostituisci ${s} con un altro allievo in questa data`;
+                    swapBtn.onclick = () => openSwapStudent(exam.id, s);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'tag-remove';
+                    removeBtn.textContent = '×';
+                    removeBtn.title = `Rimuovi ${s} da questa sessione`;
+                    removeBtn.onclick = () => removeStudentFromExam(exam.id, s);
+
+                    tag.appendChild(nameSpan);
+                    tag.appendChild(swapBtn);
+                    tag.appendChild(removeBtn);
                     studentContainer.appendChild(tag);
                 });
             } else {
@@ -693,7 +840,66 @@
             }
             card.appendChild(studentContainer);
 
-            // Box Nascosto Selettore Allievi
+            // Box Sostituzione Allievo Prenotato nella Data
+            if (activeSwapTarget && activeSwapTarget.examId === exam.id) {
+                const swapBox = document.createElement('div');
+                swapBox.className = 'swap-box';
+
+                const swapLabel = document.createElement('strong');
+                swapLabel.style.display = 'block';
+                swapLabel.style.fontSize = '0.85rem';
+                swapLabel.style.marginBottom = '6px';
+                swapLabel.textContent = `Sostituisci "${activeSwapTarget.oldStudent}" in questa data con:`;
+
+                const availableForSwap = students.filter(s => !allAssignedStudents.includes(s));
+                const selectSwap = document.createElement('select');
+                selectSwap.id = `swapSelect_${exam.id}`;
+
+                if (availableForSwap.length === 0) {
+                    const emptyOpt = document.createElement('option');
+                    emptyOpt.value = '';
+                    emptyOpt.textContent = '-- Nessun allievo disponibile --';
+                    selectSwap.appendChild(emptyOpt);
+                    selectSwap.disabled = true;
+                } else {
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = '-- Seleziona nuovo allievo --';
+                    selectSwap.appendChild(defaultOpt);
+
+                    availableForSwap.forEach(st => {
+                        const opt = document.createElement('option');
+                        opt.value = st;
+                        opt.textContent = st;
+                        selectSwap.appendChild(opt);
+                    });
+                }
+
+                const actionsRow = document.createElement('div');
+                actionsRow.className = 'swap-actions';
+
+                if (availableForSwap.length > 0) {
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.type = 'button';
+                    confirmBtn.className = 'btn-confirm-swap';
+                    confirmBtn.textContent = '✅ Conferma sostituzione';
+                    confirmBtn.onclick = () => confirmSwapStudent(exam.id, activeSwapTarget.oldStudent);
+                    actionsRow.appendChild(confirmBtn);
+                }
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'btn-cancel-swap';
+                cancelBtn.textContent = 'Annulla';
+                cancelBtn.onclick = () => cancelSwapStudent();
+                actionsRow.appendChild(cancelBtn);
+
+                swapBox.appendChild(swapLabel);
+                swapBox.appendChild(selectSwap);
+                swapBox.appendChild(actionsRow);
+                card.appendChild(swapBox);
+            }
+
             const pickerBox = document.createElement('div');
             pickerBox.id = `pickerBox_${exam.id}`;
             pickerBox.style.display = 'none';
@@ -711,18 +917,19 @@
             const scrollBox = document.createElement('div');
             scrollBox.className = 'student-selector-box';
 
-            // Filtro globale: esclude chi è già assegnato a qualsiasi esame
             const availableStudents = students.filter(s => !allAssignedStudents.includes(s));
 
             if (availableStudents.length === 0) {
                 scrollBox.innerHTML = '<span style="color:#888; font-size:0.85rem;">Tutti gli allievi sono già stati inseriti in una sessione d\'esame.</span>';
             } else {
-                availableStudents.forEach((student) => {
+                availableStudents.forEach((student, idx) => {
                     const row = document.createElement('div');
                     row.className = 'student-check-row';
 
+                    const safeSlug = encodeURIComponent(student).replace(/[^a-zA-Z0-9]/g, '_');
+                    const safeId = `ex_${exam.id}_st_${idx}_${safeSlug}`;
+
                     const lbl = document.createElement('label');
-                    const safeId = `ex_${exam.id}_st_${btoa(student).replace(/=/g, '')}`;
                     lbl.htmlFor = safeId;
                     lbl.textContent = student;
 
@@ -758,25 +965,35 @@
         await saveData();
         renderStudents();
         updateStudentSelect();
-    }
+    };
 
     window.addStudent = async function() {
         const input = document.getElementById('studentName');
         const name = input.value.trim();
-        if (name && typeof name === 'string' && name !== '[object Object]' && !students.includes(name)) {
-            students.push(name);
-            students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
-            await saveData();
-            input.value = '';
-            renderStudents();
-            updateStudentSelect();
+        if (!name) return;
+
+        if (hasDuplicate(students, name)) {
+            alert("Questo allievo è già presente nell'elenco.");
+            return;
         }
-    }
+
+        students.push(name);
+        students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+        await saveData();
+        input.value = '';
+        renderStudents();
+        updateStudentSelect();
+    };
 
     window.editStudent = async function(oldName) {
         const newName = prompt("Modifica il nome dell'allievo:", oldName);
         if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
             const trimmedNewName = newName.trim();
+            if (hasDuplicate(students, trimmedNewName, oldName)) {
+                alert("Esiste già un altro allievo con questo nome.");
+                return;
+            }
+
             const index = students.indexOf(oldName);
             if (index !== -1) students[index] = trimmedNewName;
 
@@ -792,13 +1009,17 @@
                 }
             });
 
+            if (activeSwapTarget && activeSwapTarget.oldStudent === oldName) {
+                activeSwapTarget.oldStudent = trimmedNewName;
+            }
+
             students.sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
             await saveData();
             renderStudents();
             updateStudentSelect();
             renderExams();
         }
-    }
+    };
 
     window.deleteStudent = async function(name) {
         if (confirm(`Sei sicuro di voler cancellare l'allievo "${name}"?`)) {
@@ -811,12 +1032,16 @@
                 }
             });
 
+            if (activeSwapTarget && activeSwapTarget.oldStudent === name) {
+                activeSwapTarget = null;
+            }
+
             await saveData();
             renderStudents();
             updateStudentSelect();
             renderExams();
         }
-    }
+    };
 
     function renderStudents() {
         const list = document.getElementById('studentList');
@@ -825,20 +1050,20 @@
             const li = document.createElement('li');
             const span = document.createElement('span');
             span.textContent = student;
-            
+
             const btnGroup = document.createElement('div');
             btnGroup.className = 'btn-group';
-            
+
             const editBtn = document.createElement('button');
             editBtn.className = 'btn-edit';
             editBtn.textContent = 'Modifica';
             editBtn.onclick = () => editStudent(student);
-            
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn-delete';
             deleteBtn.textContent = 'Cancella';
             deleteBtn.onclick = () => deleteStudent(student);
-            
+
             btnGroup.appendChild(editBtn);
             btnGroup.appendChild(deleteBtn);
             li.appendChild(span);
@@ -851,29 +1076,39 @@
     window.addLesson = async function() {
         const input = document.getElementById('lessonName');
         const name = input.value.trim();
-        if (name && typeof name === 'string' && name !== '[object Object]' && !lessons.includes(name)) {
-            lessons.push(name);
-            await saveData();
-            input.value = '';
-            renderLessons();
+        if (!name) return;
+
+        if (hasDuplicate(lessons, name)) {
+            alert("Questa lezione è già presente nell'elenco.");
+            return;
         }
-    }
+
+        lessons.push(name);
+        await saveData();
+        input.value = '';
+        renderLessons();
+    };
 
     window.moveLesson = async function(index, direction) {
         const newIndex = index + direction;
         if (newIndex < 0 || newIndex >= lessons.length) return;
-        
+
         const temp = lessons[index];
         lessons[index] = lessons[newIndex];
         lessons[newIndex] = temp;
         await saveData();
         renderLessons();
-    }
+    };
 
     window.editLesson = async function(oldName) {
         const newName = prompt("Modifica il nome della lezione:", oldName);
         if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
             const trimmedNewName = newName.trim();
+            if (hasDuplicate(lessons, trimmedNewName, oldName)) {
+                alert("Esiste già un'altra lezione con questo nome.");
+                return;
+            }
+
             const index = lessons.indexOf(oldName);
             if (index !== -1) lessons[index] = trimmedNewName;
 
@@ -886,7 +1121,7 @@
             await saveData();
             renderLessons();
         }
-    }
+    };
 
     window.deleteLesson = async function(name) {
         if (confirm(`Sei sicuro di voler eliminare la lezione "${name}"?`)) {
@@ -897,7 +1132,7 @@
             await saveData();
             renderLessons();
         }
-    }
+    };
 
     function renderLessons() {
         const list = document.getElementById('lessonList');
@@ -961,7 +1196,7 @@
         const checklist = document.getElementById('checklist');
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
-        
+
         checklist.innerHTML = '';
         if (!student) {
             progressBar.style.width = '0%';
@@ -979,7 +1214,7 @@
 
             const li = document.createElement('li');
             li.className = `check-item ${isDone ? 'completed' : ''}`;
-            
+
             const span = document.createElement('span');
             span.className = 'lesson-name';
             span.textContent = lesson;
@@ -988,19 +1223,15 @@
             checkbox.type = 'checkbox';
             checkbox.checked = isDone;
 
-            const handleToggle = async () => {
-                const newState = !checkbox.checked;
-                checkbox.checked = newState;
-                await toggleLesson(student, lesson, newState);
-            };
-
             checkbox.addEventListener('change', async () => {
                 await toggleLesson(student, lesson, checkbox.checked);
             });
 
             li.onclick = async (e) => {
                 if (e.target.tagName !== 'INPUT') {
-                    await handleToggle();
+                    const nextState = !checkbox.checked;
+                    checkbox.checked = nextState;
+                    await toggleLesson(student, lesson, nextState);
                 }
             };
 
@@ -1012,7 +1243,7 @@
         const percentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
         progressBar.style.width = `${percentage}%`;
         progressText.textContent = `${completedCount} / ${totalLessons} lezioni completate (${percentage}%)`;
-    }
+    };
 
     async function toggleLesson(student, lesson, isChecked) {
         if (!progress[student]) progress[student] = {};
@@ -1032,7 +1263,7 @@
         loadStudentProgress();
         renderExams();
         alert("Dati puliti e sincronizzati con successo!");
-    }
+    };
 
     loadData();
 </script>

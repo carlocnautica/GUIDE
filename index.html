@@ -182,9 +182,19 @@
             text-decoration: line-through;
             color: #555;
         }
+        .lesson-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
         .lesson-name {
             font-weight: 500;
             font-size: 0.95rem;
+        }
+        .lesson-date {
+            font-size: 0.8rem;
+            color: #2e7d32;
+            font-weight: 600;
         }
         .check-item input[type="checkbox"] {
             width: 22px;
@@ -500,6 +510,43 @@
     let exams = [];
     let saveQueue = Promise.resolve();
     let activeSwapTarget = null; // { examId, oldStudent }
+
+    function getTodayIsoDate() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatLessonDate(value) {
+        if (!value) return '';
+        if (typeof value === 'string') {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+            if (match) {
+                return `${match[3]}/${match[2]}/${match[1]}`;
+            }
+            const parsed = new Date(value);
+            if (!Number.isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('it-IT');
+            }
+            return value;
+        }
+        return '';
+    }
+
+    function getLessonDateValue(student, lesson) {
+        const entry = progress[student] && progress[student][lesson];
+        if (!entry) return null;
+        if (typeof entry === 'string') return entry;
+        if (entry === true) return null;
+        return null;
+    }
+
+    function isLessonCompleted(student, lesson) {
+        const entry = progress[student] && progress[student][lesson];
+        return Boolean(entry);
+    }
 
     function sanitizeArray(arr) {
         if (!Array.isArray(arr)) return [];
@@ -1209,15 +1256,28 @@
         const totalLessons = lessons.length;
 
         lessons.forEach(lesson => {
-            const isDone = !!progress[student][lesson];
+            const isDone = isLessonCompleted(student, lesson);
+            const rawDate = getLessonDateValue(student, lesson);
+            const formattedDate = formatLessonDate(rawDate);
             if (isDone) completedCount++;
 
             const li = document.createElement('li');
             li.className = `check-item ${isDone ? 'completed' : ''}`;
 
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'lesson-info';
+
             const span = document.createElement('span');
             span.className = 'lesson-name';
             span.textContent = lesson;
+            infoDiv.appendChild(span);
+
+            if (isDone && formattedDate) {
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'lesson-date';
+                dateSpan.textContent = `📅 Svolta il ${formattedDate}`;
+                infoDiv.appendChild(dateSpan);
+            }
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -1235,7 +1295,7 @@
                 }
             };
 
-            li.appendChild(span);
+            li.appendChild(infoDiv);
             li.appendChild(checkbox);
             checklist.appendChild(li);
         });
@@ -1247,7 +1307,11 @@
 
     async function toggleLesson(student, lesson, isChecked) {
         if (!progress[student]) progress[student] = {};
-        progress[student][lesson] = isChecked;
+        if (isChecked) {
+            progress[student][lesson] = getTodayIsoDate();
+        } else {
+            delete progress[student][lesson];
+        }
         await saveData();
         loadStudentProgress();
     }
